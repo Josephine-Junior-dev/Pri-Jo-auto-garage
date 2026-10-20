@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101c35">
+  <title>Pri&Jo Auto Garage | Operations</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><div class="brand-mark">P<span>&</span>J</div><div><b>PRI&JO</b><small>AUTO GARAGE</small></div></div>
+    <div class="side-caption">WORKSPACE</div>
+    <nav id="nav">
+      <button class="nav-item active" data-page="dashboard">▦ <span>Dashboard</span></button>
+      <button class="nav-item" data-page="vehicles">▣ <span>Vehicles</span></button>
+      <button class="nav-item" data-page="expenses">↗ <span>Expenses</span></button>
+      <button class="nav-item" data-page="petty_cash">◉ <span>Petty Cash</span></button>
+      <button class="nav-item" data-page="invoices">▤ <span>Invoices</span></button>
+      <button class="nav-item" data-page="gate_passes">▧ <span>Gate Passes</span></button>
+      <button class="nav-item" data-page="reports">▥ <span>Reports</span></button>
+    </nav>
+    <div class="sidebar-foot"><span class="live-dot"></span> Garage workspace <small>SMART SERVICE. CLEAR RECORDS.</small></div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+      <div><div class="eyebrow">PRI&JO AUTO GARAGE</div><h1 id="pageTitle">Dashboard</h1></div>
+      <div class="top-right"><span class="status-pill"><i></i> Operations</span><div class="avatar">PJ</div></div>
+    </header>
+    <section class="content">
+      <div class="welcome-row"><div><h2 id="welcomeTitle">Your garage at a glance</h2><p id="welcomeText">Track vehicles, spending and garage documents in one place.</p></div><button class="btn btn-primary" id="primaryAction">＋ Add Vehicle</button></div>
+      <div id="notice" class="notice" hidden></div>
+      <div id="pageContent"></div>
+      <footer>Pri&Jo Auto Garage <span>•</span> Operations workspace</footer>
+    </section>
+  </main>
+</div>
+
+<dialog id="recordDialog">
+  <form id="recordForm" method="dialog">
+    <div class="dialog-head"><div><div class="eyebrow">RECORD DETAILS</div><h2 id="dialogTitle">Add record</h2></div><button type="button" class="icon-btn" id="closeDialog" aria-label="Close">✕</button></div>
+    <div id="formFields" class="form-grid"></div>
+    <div class="dialog-actions"><button type="button" class="btn btn-light" id="cancelDialog">Cancel</button><button type="submit" class="btn btn-primary">Save record</button></div>
+  </form>
+</dialog>
+<div id="toast" class="toast" role="status"></div>
+<script src="app.js"></script>
+</body>
+</html>
