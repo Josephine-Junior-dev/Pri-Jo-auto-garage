@@ -3,7 +3,7 @@ const SUPABASE_URL = "https://ptluwoeogfkqavhspdjj.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_wDsWINauH0jX9rezsEwczw_RovrM6Nv";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-const state = { page: "dashboard", rows: {}, editing: null, search: "" };
+const state = { page: "dashboard", rows: {}, editing: null, search: "", expenseVehicleFilter: "" };
 const configs = {
   vehicles: {
     title: "Vehicles", singular: "Vehicle", table: "vehicles",
@@ -125,7 +125,7 @@ function renderStats(){
 function tableHtml(table, records, keys, action=true){
   const cfg=configs[table];
   if(!records.length) return `<div class="empty"><b>No records yet</b>Add your first ${cfg.singular.toLowerCase()} to get started.</div>`;
-  return `<div class="table-wrap"><table><thead><tr>${keys.map(k=>`<th>${safe(cfg.fields.find(f=>f[0]===k)?.[1]||titleCase(k))}</th>`).join("")}${action?"<th>Actions</th>":""}</tr></thead><tbody>${records.map(r=>`<tr>${keys.map(k=>`<td>${displayValue(k,r[k])}</td>`).join("")}${action?`<td><div class="row-actions"><button class="icon-btn" title="Edit" data-edit="${table}" data-id="${safe(r.id)}">✎</button><button class="icon-btn" title="Print" data-print="${table}" data-id="${safe(r.id)}">⎙</button><button class="icon-btn" title="Share" data-share="${table}" data-id="${safe(r.id)}">↗</button><button class="icon-btn" title="Delete" data-delete="${table}" data-id="${safe(r.id)}">⌫</button></div></td>`:""}</tr>`).join("")}</tbody></table></div>`;
+  return `<div class="table-wrap"><table><thead><tr>${keys.map(k=>`<th>${safe(cfg.fields.find(f=>f[0]===k)?.[1]||titleCase(k))}</th>`).join("")}${action?"<th>Actions</th>":""}</tr></thead><tbody>${records.map(r=>`<tr>${keys.map(k=>`<td>${displayValue(k,r[k])}</td>`).join("")}${action?`<td><div class="row-actions">${table==="vehicles"?`<button class="icon-btn" title="View this vehicle's expenses" data-vehicle-expenses="${safe(r.id)}">₹</button>`:""}<button class="icon-btn" title="Edit" data-edit="${table}" data-id="${safe(r.id)}">✎</button><button class="icon-btn" title="Print" data-print="${table}" data-id="${safe(r.id)}">⎙</button><button class="icon-btn" title="Share" data-share="${table}" data-id="${safe(r.id)}">↗</button><button class="icon-btn" title="Delete" data-delete="${table}" data-id="${safe(r.id)}">⌫</button></div></td>`:""}</tr>`).join("")}</tbody></table></div>`;
 }
 function dashboardHtml(){
   const recent=rowsFor("vehicles").slice(0,5);
@@ -144,8 +144,15 @@ function expenseSummary(){
 function listPage(table){
   const cfg=configs[table], rows=rowsFor(table);
   const q=state.search.toLowerCase();
-  const filtered=rows.filter(r=>Object.values(r).some(v=>String(v??"").toLowerCase().includes(q)));
-  return `<div class="panel"><div class="toolbar"><input class="search" id="tableSearch" placeholder="Search ${cfg.title.toLowerCase()}..." value="${safe(state.search)}"><button class="btn btn-primary" data-new="${table}">＋ Add ${cfg.singular}</button></div>${tableHtml(table,filtered,cfg.columns,true)}</div>`;
+  let filtered=rows.filter(r=>Object.values(r).some(v=>String(v??"").toLowerCase().includes(q)));
+  let vehicleFilter="";
+  if(table==="expenses"){
+    if(state.expenseVehicleFilter) filtered=filtered.filter(r=>String(r.vehicle_id||"")===String(state.expenseVehicleFilter));
+    const vehicles=rowsFor("vehicles");
+    vehicleFilter=`<select id="expenseVehicleFilter" class="search" style="max-width:300px"><option value="">All vehicle expenses</option>${vehicles.map(v=>`<option value="${safe(v.id)}" ${String(state.expenseVehicleFilter)===String(v.id)?"selected":""}>${safe(v.registration||v.chassis_no||v.vehicle_number||v.id)}${v.customer?" — "+safe(v.customer):""}</option>`).join("")}</select>`;
+  }
+  const totalAmount=table==="expenses"?`<div class="panel-head"><div><h3>${state.expenseVehicleFilter?"Selected Vehicle Expenses":"Expense Total"}</h3><p>${filtered.length} matching expense record(s)</p></div><strong>${money(filtered.reduce((s,r)=>s+Number(r.amount||0),0))}</strong></div>`:"";
+  return `<div class="panel"><div class="toolbar"><input class="search" id="tableSearch" placeholder="Search ${cfg.title.toLowerCase()}..." value="${safe(state.search)}">${vehicleFilter}<button class="btn btn-primary" data-new="${table}">＋ Add ${cfg.singular}</button></div>${totalAmount}${tableHtml(table,filtered,cfg.columns,true)}</div>`;
 }
 function pettyCashPage(){
   const received=rowsFor("petty_cash").filter(r=>/received/i.test(r.type||"")).reduce((s,r)=>s+Number(r.amount||0),0);
@@ -186,7 +193,10 @@ async function go(page){
 }
 function fieldInput(f,value){
   const [key,label,type,required,options]=f;let control="";
-  if(type==="select") control=`<select name="${key}" ${required?"required":""}><option value="">Choose...</option>${options.map(o=>`<option ${String(value??"")===o?"selected":""}>${safe(o)}</option>`).join("")}</select>`;
+  if(key==="vehicle_id" && ["expenses","invoices","gate_passes"].includes(state.editing?.table)){
+    const vehicles=rowsFor("vehicles");
+    control=`<select name="${key}" ${required?"required":""}><option value="">${required?"Choose vehicle...":"No vehicle linked"}</option>${vehicles.map(v=>{const val=String(v.id);const reg=v.registration||v.chassis_no||v.vehicle_number||val;return `<option value="${safe(val)}" ${String(value??"")===val?"selected":""}>${safe(reg)}${v.customer?" — "+safe(v.customer):""}</option>`}).join("")}</select><small class="subtext">Choose a saved vehicle to link this record to its vehicle history.</small>`;
+  } else if(type==="select") control=`<select name="${key}" ${required?"required":""}><option value="">Choose...</option>${options.map(o=>`<option ${String(value??"")===o?"selected":""}>${safe(o)}</option>`).join("")}</select>`;
   else if(type==="textarea")control=`<textarea name="${key}" ${required?"required":""}>${safe(value??"")}</textarea>`;
   else control=`<input name="${key}" type="${type}" value="${safe(value??"")}" ${required?"required":""} ${type==="number"?'min="0" step="0.01"':""}>`;
   return `<div class="field ${type==="textarea"?"full":""}"><label>${safe(label)}${required?" *":""}</label>${control}</div>`;
@@ -202,6 +212,8 @@ function openForm(table,id=null){
 function bindContentEvents(){
   $("pageContent").querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>go(b.dataset.goto));
   $("pageContent").querySelectorAll("[data-new]").forEach(b=>b.onclick=()=>openForm(b.dataset.new));
+  $("pageContent").querySelectorAll("[data-vehicle-expenses]").forEach(b=>b.onclick=async()=>{state.expenseVehicleFilter=b.dataset.vehicleExpenses;await go("expenses")});
+  const expenseFilter=$("expenseVehicleFilter");if(expenseFilter)expenseFilter.onchange=()=>{state.expenseVehicleFilter=expenseFilter.value;refreshPage()};
   $("pageContent").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openForm(b.dataset.edit,b.dataset.id));
   $("pageContent").querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>deleteRecord(b.dataset.delete,b.dataset.id));
   $("pageContent").querySelectorAll("[data-print]").forEach(b=>b.onclick=()=>printRecord(b.dataset.print,b.dataset.id));
